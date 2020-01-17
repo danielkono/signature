@@ -1,3 +1,28 @@
+//from https://github.com/4Q-s-r-o/signature/blob/master/lib/signature.dart
+//
+/*
+MIT License
+
+Copyright (c) 2018 4Q s.r.o.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -64,11 +89,14 @@ class SignatureState extends State<Signature> {
   _SignaturePainter painter;
   List<Point> _points;
 
+  bool isOutsideDrawField;
+
   @override
   void initState() {
     super.initState();
     _painterKey = GlobalKey();
     _points = widget.points ?? List<Point>();
+    isOutsideDrawField = false;
   }
 
   //CLEAR POINTS AND REBUILD. CANVAS WILL BE BLANK
@@ -143,7 +171,6 @@ class SignatureState extends State<Signature> {
       );
     }
   }
-
   void _addPoint(PointerEvent event, PointType type) {
     if (_painterKey.currentContext != null) {
       RenderBox box = _painterKey.currentContext.findRenderObject();
@@ -151,21 +178,19 @@ class SignatureState extends State<Signature> {
       //SAVE POINT ONLY IF IT IS IN THE SPECIFIED BOUNDARIES
       if ((widget.width == null || o.dx > 0 && o.dx < widget.width) &&
           (widget.height == null || o.dy > 0 && o.dy < widget.height)) {
-        // IF USER LEFT THE BOUNDARY AND AND ALSO RETURNED BACK
-        // IN ONE MOVE, RETYPE IT AS TAP, AS WE DO NOT WANT TO
-        // LINK IT WITH PREVIOUS POINT
-        if (_points.length != 0 && _isFar(o, _points.last.offset)) {
-          type = PointType.tap;
-        }
         setState(() {
+          if (isOutsideDrawField) {
+            type = PointType.tap;
+          }
           _points.add(Point(o, type));
+          isOutsideDrawField = false;
         });
+      } else {
+        if (!isOutsideDrawField) {
+            isOutsideDrawField = true;
+        }
       }
     }
-  }
-
-  bool _isFar(Offset o1, Offset o2) {
-    return (o1.dx - o2.dx).abs() > 30 || (o1.dy - o2.dy).abs() > 30;
   }
 }
 
@@ -203,7 +228,8 @@ class _SignaturePainter extends CustomPainter {
       } else {
         canvas.drawCircle(
           _points[i].offset,
-          2.0,
+          1.5
+          ,
           _penStyle,
         );
       }
